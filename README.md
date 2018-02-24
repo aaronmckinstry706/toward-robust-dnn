@@ -9,7 +9,7 @@ For what I have in mind, the simplest thing to do is to first reproduce the resu
 
 MNIST architecture:
 
-> The initial network has a convolutional layer with 2 filters, followed by another convolutional layer with 4 filters, and a fully connected hidden layer with 64 units. Convolutional layers are followed by 2x2 max-pooling layers and adversarial examples are constructed with $\varepsilon = 3$. 
+> The initial network has a convolutional layer with 2 filters, followed by another convolutional layer with 4 filters, and a fully connected hidden layer with 64 units. Convolutional layers are followed by 2x2 max-pooling layers and adversarial examples are constructed with $\varepsilon = 0.3$. 
 
 What are the filter sizes? According to their code on the [challenge website][https://github.com/MadryLab/mnist_challenge/blob/master/model.py]:
 
@@ -47,4 +47,15 @@ JK JK JK filling in some gaps here. What about the kernel stride? Their code:
 > `  def _conv2d(x, W):`
 > `      return tf.nn.conv2d(x, W, strides=[1,1,1,1], padding='SAME')`
 
-Now we also know that using same-padding, too. 
+Now we also know that they using same-padding, too. Another couple questions I have are answered below. 
+* Is $\vareps$ on the 0-255 scale, or is it on the 0-1 scale? Their code does not divide $\vareps$ by 255, so I must assume that it is on the 0-1 scale. (This is on MNIST. For CIFAR, they used $\vareps=8$, so it is definitely on the 0-255 scale in the context of CIFAR.)
+* What is their weight initialization function? From their model initialization code, they use `tf.truncated_normal(shape, stddev=0.1)`. PyTorch has no equivalent of `truncated_normal` (which re-samples any elements more than 2 stddev's until all elements are within 2 stddev's), but just using the standard normal distribution with standard deviation 0.1 should not cause problems. 
+* For PGD, how many restarts and how many steps did they use? Upon careful visual inspection, the first three entries of Table 1 seem to match the three points in Figure 4 column (c) for capacity scale 16. This suggests that they used 40 steps for PGD, with 1 random restart. (I should clarify: 1 random "restart" just means running PGD once. Terminology is confusing, but that's what they use in the paper and their code.)
+
+In their code, they use Adam for their optimizer. What are the default parameters in Adam for TensorFlow vs. Pytorch? Looking at the documentation for each, the default parameters are identical: learning rate $10^{-3}$, $\Beta_1=0.9$, $\Beta_2$=0.999$, $\eps=10^{-8}$. 
+
+They do not use weight decay in the code, nor do they mention it in the paper. 
+
+They do not use early stopping; they run their code for a set number of steps (included in the README file you're reading, but way above here). 
+
+They do not use a training/validation split. 
